@@ -14,6 +14,7 @@ namespace SecurityMicroservice_A.Controllers
 
         // POST api/<PackageManagementController>
         [HttpPost("create")]
+        [Authorize(Policy = "abc")]
         public CreatePackageResponse CreatePackage([FromBody] CreatePackage value)
         {
             return new CreatePackageResponse() { Message = value.PackageName + " Package created successfully" };
@@ -21,6 +22,7 @@ namespace SecurityMicroservice_A.Controllers
 
         // DELETE api/<PackageManagementController>/5
         [HttpDelete("delete")]
+        [Authorize(Policy = "def")]
         public bool Delete(string packageName)
         {
             return true;

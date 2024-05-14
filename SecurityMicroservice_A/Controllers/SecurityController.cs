@@ -28,7 +28,7 @@ namespace SecurityMicroservice_A.Controllers
             var claims = new List<Claim>
             {
                 new Claim("Scopes", "create-package"),
-                new Claim("Scopes", "view-package"),
+                new Claim("Scopes", "edit-package"),
                 new Claim("Scopes", "delete-package")
             };
 

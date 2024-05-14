@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
+using SecurityMicroservice_A.DatabaseModel.SecurityDB.DBContext;
 using SecurityMicroservice_A.Middlewares;
 using System.Reflection.Metadata;
 using System.Text;
@@ -47,13 +50,37 @@ builder.Services.AddCors(options =>
 });
 
 #endregion Services CORS
+var securityDB = builder.Configuration.GetConnectionString("SecurityDatabase");
+builder.Services.AddDbContext<TcpSecurityDbContext>(options => options.UseSqlServer(securityDB));
+
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
 
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddSingleton<IAuthorizationHandler, CustomAuthorizationHandler>();
+
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+// Add authorization
+builder.Services.AddAuthorization(options =>
+{
+    using (var scope = builder.Services.BuildServiceProvider().CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<TcpSecurityDbContext>();
+        var policies = dbContext.Policies.Include(p => p.Scopes).ToList();
+
+        foreach (var policy in policies)
+        {
+            options.AddPolicy(policy.Name, builder =>
+            {
+                builder.AddRequirements(new CustomAuthorizationRequirement(policy.Scopes.Select(s => s.Name).ToArray()));
+            });
+        }
+    }
+});
 
 #region Read documentation from the XML for Swagger UI
 
@@ -146,7 +173,7 @@ app.UseRouting();
 
 app.UseCors(allowSpecificOrigins);
 
-app.UseMiddleware<TcpSecMiddleware>();
+//app.UseMiddleware<TcpSecMiddleware>();
 
 app.UseHttpsRedirection();
 
